@@ -1,81 +1,24 @@
-# Python bytecode
-__pycache__/
-*.py[cod]
-*$py.class
-
-# C extensions
-*.so
-
-# Distribution / packaging
-build/
-dist/
-*.egg-info/
-.eggs/
-wheels/
-pip-wheel-metadata/
-
-# Virtual environments
+# --- General ---
 .env
 .env.*
-.venv/
-venv/
-ENV/
-env/
-venv.bak/
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Test / coverage
-.coverage
-.coverage.*
-htmlcov/
-.pytest_cache/
-.tox/
-.nox/
-
-# Type check / cache
-.mypy_cache/
-.pyre/
-.pytype/
-
-# IDEs and editors
-.vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
-
-# Jupyter
-.ipynb_checkpoints
-
-# Static / build artifacts
-staticfiles/
-media/
-node_modules/
-dist/
-build/
-
-# Logs
 *.log
 
-# Databases
-*.sqlite3
-*.db
-*.db-journal
+# --- Python / Backend ---
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
 
-# Secrets / keys / certificates
-*.pem
-*.key
-*.crt
-secrets/
-.env.local
+# --- Node.js / Frontend ---
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Docker
-docker-compose.override.yml
-
-# Misc
-*.cover
-coverage.xml
-*.bak
-*.swp
+# --- IDE / OS ---
+.vscode/
+.idea/
+*.DS_Store
