@@ -99,9 +99,18 @@ def get_answer_from_rag(question: str, chat_history: list):
 
     # 3. Define Prompt Template
     template = """You are a helpful financial analyst. Answer questions based on the context provided.
-    Context: {context}
-    Chat History: {chat_history}
-    Question: {question}
+    Format your response using Markdown. 
+    When presenting financial data, lists, or comparisons, always use Markdown tables.
+
+    Context:
+    {context}
+
+    Chat History:
+    {chat_history}
+
+    Question:
+    {question}
+
     Provide a clear and concise answer. If the context does not contain the answer, state that clearly."""
     prompt = ChatPromptTemplate.from_template(template)
 
