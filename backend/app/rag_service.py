@@ -1,4 +1,3 @@
-# app/rag_service.py
 import os
 from tempfile import NamedTemporaryFile
 from supabase.client import Client, create_client
@@ -10,10 +9,9 @@ from langchain_community.vectorstores import SupabaseVectorStore
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage, AIMessage
 
-from . import config  # Import configuration from our config file
+from . import config
 
-# --- Initialize Supabase Client ---
-# This client will be used to interact with Supabase services
+# Initialize Supabase Client
 supabase_client: Client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
 
 
@@ -23,13 +21,13 @@ def process_and_embed_pdf(file_bytes: bytes, original_file_name: str) -> None:
     into the Supabase Vector Store.
     """
     print("Starting PDF processing...")
-    # Use a temporary file to safely handle the uploaded PDF content
+    # Temp file to safely handle the uploaded PDF bytes
     with NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
         temp_file.write(file_bytes)
         temp_file_path = temp_file.name
 
     try:
-        # 1. Upload the original PDF to Supabase Storage
+        # Upload the original PDF to Supabase Storage
         print(f"Uploading {original_file_name} to Supabase Storage...")
         storage_path = f"public/{original_file_name}"
         supabase_client.storage.from_(config.PDF_BUCKET_NAME).upload(
@@ -39,7 +37,7 @@ def process_and_embed_pdf(file_bytes: bytes, original_file_name: str) -> None:
         )
         print("Upload successful.")
 
-        # 2. Load and chunk the document
+        # Load and chunk the document
         print("Loading and chunking document...")
         loader = PyPDFLoader(temp_file_path)
         docs = loader.load()
@@ -47,16 +45,15 @@ def process_and_embed_pdf(file_bytes: bytes, original_file_name: str) -> None:
         chunks = text_splitter.split_documents(docs)
         print(f"Document split into {len(chunks)} chunks.")
 
-        # 3. Initialize embeddings
+        # Initialize embeddings
         embeddings = HuggingFaceEmbeddings(
             model_name=config.EMBEDDING_MODEL_NAME,
             model_kwargs={"device": "cpu"}
         )
 
-        # 4. Clear old data and store new embeddings in Supabase Vector Store
+        # Clear old data and store new embeddings in Supabase Vector Store
         print("Storing embeddings in Supabase Vector Store...")
-        # Note: A more robust production approach might involve user-specific tables or metadata filters.
-        # For this example, we clear the table for each new upload.
+        # Clear the table for each new upload.
         SupabaseVectorStore.from_documents(
             documents=chunks,
             embedding=embeddings,

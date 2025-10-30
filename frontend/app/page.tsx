@@ -10,6 +10,7 @@ import { Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import TextareaAutosize from 'react-textarea-autosize';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 // --- PRE-MADE PROMPTS ---
 const examplePrompts = [
@@ -75,7 +76,8 @@ export default function Home() {
     <div className="flex h-screen bg-muted/40">
       <aside className="w-1/3 max-w-sm p-4 border-r bg-background">
         <div className="flex flex-col h-full">
-          <h1 className="text-2xl font-bold mb-4">Analyzer 📈</h1>
+          <p className="text-2xl font-bold mb-4">Fintrack</p>
+          <ThemeToggle />
           <PDFUploader onUploadSuccess={handleUploadSuccess} />
         </div>
       </aside>

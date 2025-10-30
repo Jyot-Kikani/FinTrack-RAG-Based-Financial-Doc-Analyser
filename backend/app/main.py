@@ -10,11 +10,10 @@ app = FastAPI(
     description="An API for processing financial reports and answering questions about them.",
 )
 
-# --- CORS Middleware ---
-# This is crucial for allowing your React frontend (on a different domain) to communicate with this API.
+# CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For development. In production, restrict to your frontend's domain.
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,6 +51,5 @@ async def chat_with_document(request: schemas.ChatRequest):
         answer = rag_service.get_answer_from_rag(request.question, request.chat_history)
         return schemas.ChatResponse(answer=answer)
     except Exception as e:
-        # Log the error for debugging
         print(f"Error during chat processing: {e}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")

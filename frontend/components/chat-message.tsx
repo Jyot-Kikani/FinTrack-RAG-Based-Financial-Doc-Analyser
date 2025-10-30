@@ -7,6 +7,7 @@ import { Bot, User, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from './ui/button';
+import { motion } from 'framer-motion';
 
 export interface ChatMessageProps {
   role: 'user' | 'assistant';
@@ -24,7 +25,12 @@ export function ChatMessage({ role, content }: ChatMessageProps) {
   };
 
   return (
-    <div className={cn('flex items-start space-x-4', isUser ? 'justify-end' : '')}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className={cn('flex items-start space-x-4', isUser ? 'justify-end' : '')}
+    >
       {!isUser && (
         <div className="shrink-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
           <Bot className="h-5 w-5" />
@@ -50,6 +56,6 @@ export function ChatMessage({ role, content }: ChatMessageProps) {
           <User className="h-5 w-5" />
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
