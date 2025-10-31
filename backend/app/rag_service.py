@@ -11,23 +11,18 @@ from langchain_core.messages import HumanMessage, AIMessage
 
 from . import config
 
-# Initialize Supabase Client
+
 supabase_client: Client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
 
 
 def process_and_embed_pdf(file_bytes: bytes, original_file_name: str) -> None:
-    """
-    Processes an uploaded PDF, uploads it to Supabase Storage, and embeds its content
-    into the Supabase Vector Store.
-    """
+
     print("Starting PDF processing...")
-    # Temp file to safely handle the uploaded PDF bytes
     with NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
         temp_file.write(file_bytes)
         temp_file_path = temp_file.name
 
     try:
-        # Upload the original PDF to Supabase Storage
         print(f"Uploading {original_file_name} to Supabase Storage...")
         storage_path = f"public/{original_file_name}"
         supabase_client.storage.from_(config.PDF_BUCKET_NAME).upload(
@@ -37,7 +32,6 @@ def process_and_embed_pdf(file_bytes: bytes, original_file_name: str) -> None:
         )
         print("Upload successful.")
 
-        # Load and chunk the document
         print("Loading and chunking document...")
         loader = PyPDFLoader(temp_file_path)
         docs = loader.load()
@@ -51,38 +45,29 @@ def process_and_embed_pdf(file_bytes: bytes, original_file_name: str) -> None:
             model_kwargs={"device": "cpu"}
         )
 
-        # Clear old data and store new embeddings in Supabase Vector Store
         print("Storing embeddings in Supabase Vector Store...")
-        # Clear the table for each new upload.
         SupabaseVectorStore.from_documents(
             documents=chunks,
             embedding=embeddings,
             client=supabase_client,
             table_name=config.VECTOR_TABLE_NAME,
             query_name=config.MATCH_FUNCTION_NAME,
-            # This will delete all existing rows in the table before inserting new ones
-            # Be cautious with this in a multi-user environment
-            chunk_size=100 # Batch size for insertion
+            chunk_size=100 
         )
         print("Embeddings stored successfully.")
 
     finally:
-        # Clean up the temporary file
         os.unlink(temp_file_path)
 
 
 def get_answer_from_rag(question: str, chat_history: list):
-    """
-    Builds a RAG chain on-demand and gets an answer for a given question.
-    """
+
     print("Building RAG chain on-demand...")
-    # 1. Initialize LLM
     llm_endpoint = HuggingFaceEndpoint(
         repo_id=config.REPO_ID, task="text-generation", max_new_tokens=512, do_sample=False
     )
     llm = ChatHuggingFace(llm=llm_endpoint)
 
-    # 2. Initialize Embeddings and connect to the existing Vector Store
     embeddings = HuggingFaceEmbeddings(
         model_name=config.EMBEDDING_MODEL_NAME, model_kwargs={"device": "cpu"}
     )
@@ -94,24 +79,34 @@ def get_answer_from_rag(question: str, chat_history: list):
     )
     retriever = vector_store.as_retriever(search_kwargs={"k": 3})
 
-    # 3. Define Prompt Template
-    template = """You are a helpful financial analyst. Answer questions based on the context provided.
-    Format your response using Markdown. 
-    When presenting financial data, lists, or comparisons, always use Markdown tables.
+    template = """You are an expert financial analyst and research assistant. 
+Your task is to provide clear, data-driven, and well-structured answers based strictly on the information provided in the context. 
+If the context is insufficient to answer the question, explicitly state that.
 
-    Context:
-    {context}
+--- 
+**Guidelines:**
+1. Use **Markdown formatting** throughout your response.  
+2. When presenting:
+   - **Financial data, ratios, or comparisons**, use **Markdown tables**.  
+   - **Lists of factors, pros/cons, or steps**, use **bulleted lists**.  
+3. Be **concise but analytical** — highlight insights, implications, and reasoning.  
+4. If relevant, mention key **financial metrics**, **industry benchmarks**, or **risk factors** based on the context.  
+5. Avoid speculation — only use information grounded in the provided context.  
+6. Include a short **summary or recommendation** at the end when applicable.  
 
-    Chat History:
-    {chat_history}
+---
+**Inputs:**
+- **Context:** {context}  
+- **Chat History:** {chat_history}  
+- **Question:** {question}  
 
-    Question:
-    {question}
-
-    Provide a clear and concise answer. If the context does not contain the answer, state that clearly."""
+---
+**Output Requirements:**
+- Provide a **clear, structured, and actionable** financial analysis or answer.
+- If data is missing, respond with: *“The context does not provide enough information to answer this question.”*
+"""
     prompt = ChatPromptTemplate.from_template(template)
 
-    # 4. Helper functions for formatting
     def format_docs(docs):
         return "\n\n".join(doc.page_content for doc in docs)
 
@@ -123,13 +118,12 @@ def get_answer_from_rag(question: str, chat_history: list):
             formatted.append(f"{role}: {msg.get('content')}")
         return "\n".join(formatted)
 
-    # 5. Retrieve documents and invoke the LLM
     print(f"Retrieving documents for question: {question}")
     docs = retriever.invoke(question)
     context = format_docs(docs)
     formatted_chat_history = format_chat_history(chat_history)
     
-    # Prepare the prompt with all the necessary information
+    
     formatted_prompt = prompt.invoke({
         "context": context,
         "chat_history": formatted_chat_history,
