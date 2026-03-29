@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { UploadCloud, FileText, Loader2 } from 'lucide-react';
 // import { useToast } from '@/components/ui/use-toast';
 import { toast } from "sonner";
-import axios from 'axios';
+import api from '@/lib/api';
 
 interface PDFUploaderProps {
   onUploadSuccess: () => void;
@@ -38,10 +38,9 @@ export function PDFUploader({ onUploadSuccess }: PDFUploaderProps) {
     formData.append('file', selectedFile);
 
     try {
-      // IMPORTANT: Update this URL to match your backend's URL
-      const response = await axios.post('http://127.0.0.1:8000/upload/', formData, {
+      const response = await api.post('/upload/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 600000, // 10 minutes timeout for large files
+        timeout: 600000, 
       });
 
       if (response.status === 200) {

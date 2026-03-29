@@ -6,11 +6,15 @@ import { PDFUploader } from '@/components/pdf-uploader';
 import { WelcomeScreen } from '@/components/welcome-screen';
 import { ChatMessage, ChatMessageProps } from '@/components/chat-message';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
-import axios from 'axios';
+import { useAuth } from '@/app/auth-context';
+import { useRouter } from 'next/navigation';
+import api from '@/lib/api';
 import TextareaAutosize from 'react-textarea-autosize';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { FileText } from 'lucide-react';
 
 // --- PRE-MADE PROMPTS ---
 const examplePrompts = [
@@ -21,11 +25,56 @@ const examplePrompts = [
 ];
 
 export default function Home() {
+  const { user, isLoading, supabase } = useAuth();
+  const router = useRouter();
   const [pdfProcessed, setPdfProcessed] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [messages, setMessages] = useState<ChatMessageProps[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isLoading, router]);
+
+  useEffect(() => {
+    async function loadPastHistory() {
+      if (user) {
+        const { data, error } = await supabase
+          .from('chat_histories')
+          .select('question, answer')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: true });
+          
+        if (data && data.length > 0) {
+          const pastMessages: ChatMessageProps[] = [];
+          data.forEach((row) => {
+            pastMessages.push({ role: 'user', content: row.question });
+            pastMessages.push({ role: 'assistant', content: row.answer });
+          });
+          setMessages(pastMessages);
+          setPdfProcessed(true); // Automatically hide welcome screen if they already have data
+        }
+      }
+    }
+    loadPastHistory();
+  }, [user, supabase]);
+
+  useEffect(() => {
+    async function loadFiles() {
+      if (user) {
+        const { data, error } = await supabase.storage.from('financial_reports').list(user.id);
+        if (data && !error) {
+          // Filter out the `.emptyFolderPlaceholder` typically created in storage
+          setUploadedFiles(data.filter(f => f.name !== '.emptyFolderPlaceholder'));
+        }
+      }
+    }
+    loadFiles();
+  }, [user, supabase, pdfProcessed]);
 
   useEffect(() => {
     chatContainerRef.current?.scrollTo(0, chatContainerRef.current.scrollHeight);
@@ -46,7 +95,7 @@ export default function Home() {
     const apiChatHistory = messages.map((msg) => ({ type: msg.role, content: msg.content }));
 
     try {
-      const response = await axios.post('http://127.0.0.1:8000/chat/', {
+      const response = await api.post('/chat/', {
         question: message,
         chat_history: apiChatHistory,
       });
@@ -72,12 +121,55 @@ export default function Home() {
     setInputValue('');
   };
 
+  if (isLoading || !user) {
+    return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
+
   return (
     <div className="flex h-screen bg-muted/40">
-      <aside className="w-1/3 max-w-sm p-4 border-r bg-background">
-        <div className="flex flex-col h-full">
-          <p className="text-2xl font-bold mb-4">Fintrack</p>
+      <aside className="w-1/3 max-w-sm p-4 border-r bg-background flex flex-col">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <p className="text-2xl font-bold tracking-tight">Fintrack</p>
+            <p className="text-sm text-muted-foreground">From RAG to Riches</p>
+          </div>
           <ThemeToggle />
+        </div>
+
+        <Card className="mb-6 shadow-sm">
+          <CardHeader className="p-4">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Authenticated as</CardTitle>
+            <CardDescription className="text-foreground font-medium truncate">
+              {user.email}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <Button variant="outline" className="w-full text-muted-foreground hover:text-foreground" onClick={() => supabase.auth.signOut()}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6 shadow-sm flex-1 overflow-hidden flex flex-col max-h-[40vh]">
+          <CardHeader className="p-4 pb-2 shrink-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Your Documents</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 flex-1 overflow-y-auto space-y-2">
+            {uploadedFiles.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No documents uploaded yet.</p>
+            ) : (
+              uploadedFiles.map((file, idx) => (
+                <div key={idx} className="flex items-center space-x-2 text-sm p-2 rounded-md bg-muted/50 border border-muted">
+                  <FileText className="h-4 w-4 text-primary shrink-0" />
+                  <span className="truncate font-medium">{file.name}</span>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="mt-auto shrink-0">
           <PDFUploader onUploadSuccess={handleUploadSuccess} />
         </div>
       </aside>

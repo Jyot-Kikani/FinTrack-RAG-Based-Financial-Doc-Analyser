@@ -6,6 +6,8 @@ import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
 import { ThemeProvider } from './providers';
 
+import { AuthProvider } from '@/app/auth-context';
+
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
@@ -28,8 +30,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster richColors />
+          <AuthProvider>
+            {children}
+            <Toaster richColors />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
