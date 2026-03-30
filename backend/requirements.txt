@@ -8,5 +8,4 @@ langchain-text-splitters
 supabase
 python-dotenv
 python-multipart
-gotrue
 sentence-transformers
