@@ -12,7 +12,7 @@ app = FastAPI(
     description="An API for processing financial reports and answering questions about them.",
 )
 
-# CORS Middleware
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -38,7 +38,6 @@ async def upload_pdf(file: UploadFile = File(...), current_user: User = Depends(
             file_name=file.filename
         )
     except Exception as e:
-        # Log the error for debugging
         print(f"Error during PDF upload and processing: {e}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
 

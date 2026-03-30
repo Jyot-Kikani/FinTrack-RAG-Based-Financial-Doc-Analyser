@@ -28,7 +28,6 @@ def process_and_embed_pdf(file_bytes: bytes, original_file_name: str, user_id: s
     into the Supabase Vector Store tied to the specific user.
     """
     print("Starting PDF processing...")
-    # Temp file to safely handle the uploaded PDF bytes
     with NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
         temp_file.write(file_bytes)
         temp_file_path = temp_file.name
@@ -46,7 +45,6 @@ def process_and_embed_pdf(file_bytes: bytes, original_file_name: str, user_id: s
         )
         print("Upload successful.")
 
-        # Load and chunk the document
         print("Loading and chunking document...")
         loader = PyPDFLoader(temp_file_path)
         docs = loader.load()
@@ -85,7 +83,6 @@ def process_and_embed_pdf(file_bytes: bytes, original_file_name: str, user_id: s
         print("Embeddings stored successfully under secure RLS constraint.")
 
     finally:
-        # Clean up the temporary file
         os.unlink(temp_file_path)
 
 
@@ -94,13 +91,11 @@ def get_answer_from_rag(question: str, chat_history: list, user_id: str, token: 
     Builds a RAG chain on-demand and gets an answer for a given question, isolated to the user.
     """
     print("Building RAG chain on-demand...")
-    # 1. Initialize LLM
     llm_endpoint = HuggingFaceEndpoint(
         repo_id=config.REPO_ID, task="text-generation", max_new_tokens=512, do_sample=False
     )
     llm = ChatHuggingFace(llm=llm_endpoint)
 
-    # 2. Initialize Embeddings and connect to the existing Vector Store
     embeddings = HuggingFaceEmbeddings(
         model_name=config.EMBEDDING_MODEL_NAME, model_kwargs={"device": "cpu"}
     )
@@ -138,7 +133,6 @@ def get_answer_from_rag(question: str, chat_history: list, user_id: str, token: 
     """
     prompt = ChatPromptTemplate.from_template(template)
 
-    # 4. Helper functions for formatting
     def format_docs(docs):
         return "\n\n".join(doc.page_content for doc in docs)
 
@@ -150,13 +144,12 @@ def get_answer_from_rag(question: str, chat_history: list, user_id: str, token: 
             formatted.append(f"{role}: {msg.get('content')}")
         return "\n".join(formatted)
 
-    # 5. Retrieve documents and invoke the LLM
     print(f"Retrieving documents for question: {question}")
     docs = retriever.invoke(question)
     context = format_docs(docs)
     formatted_chat_history = format_chat_history(chat_history)
     
-    # Prepare the prompt with all the necessary information
+    
     formatted_prompt = prompt.invoke({
         "context": context,
         "chat_history": formatted_chat_history,

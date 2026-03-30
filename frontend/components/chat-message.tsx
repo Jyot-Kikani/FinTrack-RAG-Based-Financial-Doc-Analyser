@@ -21,7 +21,7 @@ export function ChatMessage({ role, content }: ChatMessageProps) {
   const handleCopy = () => {
     navigator.clipboard.writeText(content);
     setHasCopied(true);
-    setTimeout(() => setHasCopied(false), 2000); // Reset after 2 seconds
+    setTimeout(() => setHasCopied(false), 2000);
   };
 
   return (
@@ -37,12 +37,10 @@ export function ChatMessage({ role, content }: ChatMessageProps) {
         </div>
       )}
       <div className={cn('px-4 py-2 rounded-lg max-w-2xl relative group', isUser ? 'bg-blue-500 text-white' : 'bg-muted')}>
-        {/* --- MARKDOWN RENDERING --- */}
         <div className="prose dark:prose-invert prose-p:leading-relaxed prose-pre:p-0">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
         </div>
 
-        {/* --- COPY TO CLIPBOARD BUTTON --- */}
         {!isUser && (
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <Button variant="ghost" size="icon" onClick={handleCopy}>
