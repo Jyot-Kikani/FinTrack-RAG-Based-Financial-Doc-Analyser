@@ -1,11 +1,9 @@
 # app/main.py
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
-# from gotrue import User
 
 from . import rag_service
 from . import schemas
-from .security import get_user_id, oauth2_scheme
 
 app = FastAPI(
     title="Financial Reports RAG API",
@@ -22,7 +20,7 @@ app.add_middleware(
 )
 
 @app.post("/upload/", response_model=schemas.UploadResponse)
-async def upload_pdf(file: UploadFile = File(...), user_id: str = Depends(get_user_id), token: str = Depends(oauth2_scheme)):
+async def upload_pdf(file: UploadFile = File(...), user_id: str = Form(...)):
     """
     Endpoint to upload a PDF. The file is processed and its content is
     embedded and stored in a Supabase vector store.
@@ -32,7 +30,7 @@ async def upload_pdf(file: UploadFile = File(...), user_id: str = Depends(get_us
 
     try:
         file_bytes = await file.read()
-        rag_service.process_and_embed_pdf(file_bytes, file.filename, user_id, token)
+        rag_service.process_and_embed_pdf(file_bytes, file.filename, user_id)
         return schemas.UploadResponse(
             message="File processed and embeddings stored successfully.",
             file_name=file.filename
@@ -43,13 +41,13 @@ async def upload_pdf(file: UploadFile = File(...), user_id: str = Depends(get_us
 
 
 @app.post("/chat/", response_model=schemas.ChatResponse)
-async def chat_with_document(request: schemas.ChatRequest, user_id: str = Depends(get_user_id), token: str = Depends(oauth2_scheme)):
+async def chat_with_document(request: schemas.ChatRequest):
     """
     Endpoint to handle chat requests. It uses the existing vector store
     to answer questions based on the uploaded document.
     """
     try:
-        answer = rag_service.get_answer_from_rag(request.question, request.chat_history, user_id, token)
+        answer = rag_service.get_answer_from_rag(request.question, request.chat_history, request.user_id)
         return schemas.ChatResponse(answer=answer)
     except Exception as e:
         print(f"Error during chat processing: {e}")

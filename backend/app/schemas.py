@@ -4,6 +4,7 @@ from typing import List, Dict, Any
 
 class ChatRequest(BaseModel):
     question: str
+    user_id: str
     chat_history: List[Dict[str, Any]] = []
 
 class UploadResponse(BaseModel):

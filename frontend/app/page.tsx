@@ -97,9 +97,25 @@ export default function Home() {
     try {
       const response = await api.post('/chat/', {
         question: message,
+        user_id: user?.id,
         chat_history: apiChatHistory,
       });
-      const assistantMessage: ChatMessageProps = { role: 'assistant', content: response.data.answer };
+      
+      const answer = response.data.answer;
+      
+      if (user?.id) {
+        try {
+          await supabase.from('chat_histories').insert({
+            user_id: user.id,
+            question: message,
+            answer: answer
+          });
+        } catch (e) {
+          console.error("Failed to log chat history:", e);
+        }
+      }
+
+      const assistantMessage: ChatMessageProps = { role: 'assistant', content: answer };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error: any) {
       toast.error('Error', { description: 'Failed to get a response from the assistant.' });
@@ -170,7 +186,7 @@ export default function Home() {
         </Card>
 
         <div className="mt-auto shrink-0">
-          <PDFUploader onUploadSuccess={handleUploadSuccess} />
+          <PDFUploader userId={user.id} onUploadSuccess={handleUploadSuccess} />
         </div>
       </aside>
 

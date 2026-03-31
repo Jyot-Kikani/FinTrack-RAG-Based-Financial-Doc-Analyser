@@ -14,15 +14,7 @@ from . import config
 # Initialize base Supabase Client for uncontrolled routes if needed
 supabase_client: Client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
 
-def get_auth_client(token: str) -> Client:
-    """Instantiates a highly secure Supabase Client tied to the user's specific JWT session, satisfying RLS requirements."""
-    client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
-    # CRITICAL: The python-supabase library forces the Anon key on the postgrest client upon initialization!
-    # We MUST override it explicitly right after creation to inject our JWT, bypassing the bug:
-    client.postgrest.auth(token)
-    return client
-
-def process_and_embed_pdf(file_bytes: bytes, original_file_name: str, user_id: str, token: str) -> None:
+def process_and_embed_pdf(file_bytes: bytes, original_file_name: str, user_id: str) -> None:
     """
     Processes an uploaded PDF, uploads it to Supabase Storage, and embeds its content
     into the Supabase Vector Store tied to the specific user.
@@ -33,18 +25,6 @@ def process_and_embed_pdf(file_bytes: bytes, original_file_name: str, user_id: s
         temp_file_path = temp_file.name
 
     try:
-        # Upload the original PDF to Supabase Storage using the authenticated client
-        print(f"Uploading {original_file_name} to Supabase Storage...")
-        auth_client = get_auth_client(token)
-        # Sandbox the uploads per user folder for strict multi-tenant architecture
-        storage_path = f"{user_id}/{original_file_name}"
-        auth_client.storage.from_(config.PDF_BUCKET_NAME).upload(
-            file=temp_file_path,
-            path=storage_path,
-            file_options={"content-type": "application/pdf", "x-upsert": "true"}
-        )
-        print("Upload successful.")
-
         print("Loading and chunking document...")
         loader = PyPDFLoader(temp_file_path)
         docs = loader.load()
@@ -78,7 +58,7 @@ def process_and_embed_pdf(file_bytes: bytes, original_file_name: str, user_id: s
         
         # Chunk the rows to limit payload sizes on the network
         for i in range(0, len(rows), 100):
-            auth_client.table(config.VECTOR_TABLE_NAME).insert(rows[i:i+100]).execute()
+            supabase_client.table(config.VECTOR_TABLE_NAME).insert(rows[i:i+100]).execute()
             
         print("Embeddings stored successfully under secure RLS constraint.")
 
@@ -86,7 +66,7 @@ def process_and_embed_pdf(file_bytes: bytes, original_file_name: str, user_id: s
         os.unlink(temp_file_path)
 
 
-def get_answer_from_rag(question: str, chat_history: list, user_id: str, token: str):
+def get_answer_from_rag(question: str, chat_history: list, user_id: str):
     """
     Builds a RAG chain on-demand and gets an answer for a given question, isolated to the user.
     """
@@ -99,9 +79,8 @@ def get_answer_from_rag(question: str, chat_history: list, user_id: str, token: 
     embeddings = HuggingFaceEmbeddings(
         model_name=config.EMBEDDING_MODEL_NAME, model_kwargs={"device": "cpu"}
     )
-    auth_client = get_auth_client(token)
     vector_store = SupabaseVectorStore(
-        client=auth_client,
+        client=supabase_client,
         embedding=embeddings,
         table_name=config.VECTOR_TABLE_NAME,
         query_name=config.MATCH_FUNCTION_NAME,
@@ -159,15 +138,4 @@ def get_answer_from_rag(question: str, chat_history: list, user_id: str, token: 
     print("Invoking LLM...")
     response = llm.invoke(formatted_prompt.to_messages())
     
-    # Store the chat history into the database
-    try:
-        auth_client.table("chat_histories").insert({
-            "user_id": str(user_id),
-            "question": question,
-            "answer": response.content
-        }).execute()
-        print("Chat history stored successfully.")
-    except Exception as e:
-        print(f"Error storing chat history: {e}")
-        
     return response.content

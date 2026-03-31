@@ -9,12 +9,14 @@ import { UploadCloud, FileText, Loader2 } from 'lucide-react';
 // import { useToast } from '@/components/ui/use-toast';
 import { toast } from "sonner";
 import api from '@/lib/api';
+import { createClient } from '@/lib/supabase/client';
 
 interface PDFUploaderProps {
+  userId: string;
   onUploadSuccess: () => void;
 }
 
-export function PDFUploader({ onUploadSuccess }: PDFUploaderProps) {
+export function PDFUploader({ userId, onUploadSuccess }: PDFUploaderProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   // const { toast } = useToast();
@@ -36,8 +38,24 @@ export function PDFUploader({ onUploadSuccess }: PDFUploaderProps) {
     setIsProcessing(true);
     const formData = new FormData();
     formData.append('file', selectedFile);
+    formData.append('user_id', userId);
 
     try {
+      const supabase = createClient();
+      toast.info('Uploading document to storage...');
+      
+      const { error: storageError } = await supabase.storage
+        .from('financial_reports')
+        .upload(`${userId}/${selectedFile.name}`, selectedFile, {
+          cacheControl: '3600',
+          upsert: true
+        });
+        
+      if (storageError) {
+         throw new Error(`Storage Error: ${storageError.message}`);
+      }
+
+      toast.info('Extracting semantics...');
       const response = await api.post('/upload/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 600000, 
