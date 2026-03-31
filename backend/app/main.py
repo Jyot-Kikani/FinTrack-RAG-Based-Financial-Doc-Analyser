@@ -58,6 +58,7 @@
 from fastapi import FastAPI
 from . import schemas
 from . import rag_service
+from .security import get_current_user, oauth2_scheme
 
 app = FastAPI()
 
