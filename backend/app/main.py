@@ -56,6 +56,7 @@
 #         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
 
 from fastapi import FastAPI
+from . import schemas
 
 app = FastAPI()
 
