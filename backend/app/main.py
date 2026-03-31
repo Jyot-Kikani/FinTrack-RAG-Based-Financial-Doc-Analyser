@@ -62,6 +62,6 @@ from .security import get_current_user, oauth2_scheme
 
 app = FastAPI()
 
-@app.get("/")
-def health():
+@app.get("/", include_in_schema=False)
+async def health():
     return {"status": "ok"}
