@@ -53,13 +53,7 @@ async def chat_with_document(request: schemas.ChatRequest):
         print(f"Error during chat processing: {e}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
 
-# from fastapi import FastAPI
-# from . import schemas
-# from . import rag_service
-# from .security import get_current_user, oauth2_scheme
-
-# app = FastAPI()
-
-# @app.get("/", include_in_schema=False)
-# async def health():
-#     return {"status": "ok"}
+@app.get("/", include_in_schema=False)
+async def health():
+    """Health check endpoint for cloud platforms like Render."""
+    return {"status": "ok", "message": "Backend is running!"}
