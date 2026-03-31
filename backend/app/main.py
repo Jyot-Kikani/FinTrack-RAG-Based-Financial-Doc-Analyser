@@ -22,7 +22,7 @@
 # )
 
 # @app.post("/upload/", response_model=schemas.UploadResponse)
-# async def upload_pdf(file: UploadFile = File(...), current_user: dict = Depends(get_current_user), token: str = Depends(oauth2_scheme)):
+# async def upload_pdf(file: UploadFile = File(...), current_user = Depends(get_current_user), token: str = Depends(oauth2_scheme)):
 #     """
 #     Endpoint to upload a PDF. The file is processed and its content is
 #     embedded and stored in a Supabase vector store.
@@ -43,7 +43,7 @@
 
 
 # @app.post("/chat/", response_model=schemas.ChatResponse)
-# async def chat_with_document(request: schemas.ChatRequest, current_user: dict = Depends(get_current_user), token: str = Depends(oauth2_scheme)):
+# async def chat_with_document(request: schemas.ChatRequest, current_user = Depends(get_current_user), token: str = Depends(oauth2_scheme)):
 #     """
 #     Endpoint to handle chat requests. It uses the existing vector store
 #     to answer questions based on the uploaded document.
